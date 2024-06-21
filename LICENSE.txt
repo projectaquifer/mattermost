@@ -1,3 +1,10 @@
+Any work in this repository that is under the copyright of Project Aquifer is covered by the AGPL v3.0.
+
+This repository refers to private Project Aquifer repositories which are based on code licensed under the Apache 
+License 2.0 as described below.
+
+--------------------
+
 Mattermost Licensing
 
 SOFTWARE LICENSING

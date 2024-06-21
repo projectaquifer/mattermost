@@ -1,5 +1,6 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
+// Changes made Copyright 2024 Project Aquifer.
 
 package main
 
@@ -11,9 +12,6 @@ import (
 	_ "github.com/mattermost/mattermost/server/v8/channels/app/slashcommands"
 	// Plugins
 	_ "github.com/mattermost/mattermost/server/v8/channels/app/oauthproviders/gitlab"
-
-	// Enterprise Imports
-	_ "github.com/mattermost/mattermost/server/v8/enterprise"
 )
 
 func main() {
