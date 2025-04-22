@@ -1,3 +1,9 @@
+This is a mattermost fork. Web content that was specified in LICENSE.txt to be under MIT license has been moved to https://github.com/projectaquifer/blue.
+
+This repository is a submodule of https://github.com/projectaquifer/aquifer.
+
+---
+
 # [![Mattermost logo](https://user-images.githubusercontent.com/7205829/137170381-fe86eef0-bccc-4fdd-8e92-b258884ebdd7.png)](https://mattermost.com)
 
 [Mattermost](https://mattermost.com) is an open source platform for secure collaboration across the entire software development lifecycle. This repo is the primary source for core development on the Mattermost platform; it's written in Go and React and runs as a single Linux binary with MySQL or PostgreSQL. A new compiled version is released under an MIT license every month on the 16th.
