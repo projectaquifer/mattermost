@@ -110,12 +110,12 @@ type AppIface interface {
 	//
 	// By default the list will be (not necessarily in this order):
 	//
-	//	['town-square', 'off-topic']
+	//	['general', 'off-topic']
 	//
 	// However, if TeamSettings.ExperimentalDefaultChannels contains a list of channels then that list will replace
-	// 'off-topic' and be included in the return results in addition to 'town-square'. For example:
+	// 'off-topic' and be included in the return results in addition to 'general'. For example:
 	//
-	//	['town-square', 'game-of-thrones', 'wow']
+	//	['general', 'game-of-thrones', 'wow']
 	DefaultChannelNames(c request.CTX) []string
 	// DeleteChannelScheme deletes a channels scheme and sets its SchemeId to nil.
 	DeleteChannelScheme(c request.CTX, channel *model.Channel) (*model.Channel, *model.AppError)

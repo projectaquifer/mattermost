@@ -993,7 +993,7 @@ func (a *App) importUserChannels(rctx request.CTX, user *model.User, team *model
 			return model.NewAppError("BulkImport", "app.import.import_user_channels.channel_not_found.error", nil, "", http.StatusInternalServerError)
 		}
 		if _, ok = channelsByID[channel.Id]; ok && *cdata.Name == model.DefaultChannelName {
-			// town-square membership was in the import and added by the importer (skip the added by the importer)
+			// general membership was in the import and added by the importer (skip the added by the importer)
 			continue
 		}
 
