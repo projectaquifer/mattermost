@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -ex
+
 for bluelink in $(cat ./bluelinks); do
     if [[ -L $bluelink ]]; then
         echo "$bluelink is already a link, aborting"
