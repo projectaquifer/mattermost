@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -e
 
 for bluelink in $(cat ./bluelinks); do
     if [[ -L $bluelink ]]; then
@@ -8,10 +8,9 @@ for bluelink in $(cat ./bluelinks); do
         exit 1
     fi
 
-    echo "Moving contents of $bluelink to blue/$bluelink"
     rm blue/$bluelink
     mv $bluelink blue/$bluelink
-
-    echo "Adding $bluelink as symlink"
     ln -s blue/$bluelink $bluelink
+
+    echo "$bluelink is now a link"
 done
