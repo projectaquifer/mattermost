@@ -12,7 +12,6 @@ for bluelink in $(cat ./bluelinks); do
     rm blue/$bluelink
     mv $bluelink blue/$bluelink
 
-    echo "Replacing $bluelink with symlink"
-    rm -r $bluelink
+    echo "Adding $bluelink as symlink"
     ln -s blue/$bluelink $bluelink
 done

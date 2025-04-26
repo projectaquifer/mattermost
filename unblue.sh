@@ -10,9 +10,8 @@ for bluelink in $(cat ./bluelinks); do
 
     echo "Replacing $bluelink link with contents of blue/$bluelink"
     rm $bluelink
-    cp -R blue/$bluelink $bluelink
+    mv blue/$bluelink/ $bluelink
 
-    echo "Removing blue/$bluelink and replacing with a link"
-    rm -r blue/$bluelink
-    ln -s blue/$bluelink ./$bluelink
+    echo "Add link from blue/$bluelink"
+    ln -s $bluelink blue/$bluelink
 done
