@@ -5,38 +5,36 @@
  * @typedef {} Language
  */
 
-/* eslint-disable import/order */
 import {getConfig} from 'mattermost-redux/selectors/entities/general';
 
+import {langFiles, langIDs, langLabels} from './imports';
+
 // should match the values in server/public/shared/i18n/i18n.go
-const languages = {
-    // de: {
-    //     value: 'de',
-    //     name: 'Deutsch',
-    //     order: 0,
-    //     url: de,
-    // },
+export const languages = {
     en: {
         value: 'en',
         name: 'English (US)',
         order: 1,
         url: '',
     },
-    // 'en-AU': {
-    //     value: 'en-AU',
-    //     name: 'English (Australia)',
-    //     order: 2,
-    //     url: enAU,
-    // },
-    // 'zh-CN': {
-    //     value: 'zh-CN',
-    //     name: '中文 (简体) (Beta)',
-    //     order: 19,
-    //     url: zhCN,
-    // },
 };
 
-export function getAllLanguages() {
+export function getAllLanguages(includeExperimental) {
+    if (includeExperimental) {
+        let order = Object.keys(languages).length;
+        return {
+            ...langIDs.reduce((out, id) => {
+                out[id] = {
+                    value: id,
+                    name: langLabels[id],
+                    url: langFiles[id],
+                    order: order++,
+                };
+                return out;
+            }, {}),
+            ...languages,
+        };
+    }
     return languages;
 }
 
@@ -47,7 +45,7 @@ export function getAllLanguages() {
 export function getLanguages(state) {
     const config = getConfig(state);
     if (!config.AvailableLocales) {
-        return getAllLanguages();
+        return getAllLanguages(config.EnableExperimentalLocales === 'true');
     }
     return config.AvailableLocales.split(',').reduce((result, l) => {
         if (languages[l]) {
@@ -58,7 +56,7 @@ export function getLanguages(state) {
 }
 
 export function getLanguageInfo(locale) {
-    return getAllLanguages()[locale];
+    return getAllLanguages(true)[locale];
 }
 
 /**

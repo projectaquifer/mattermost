@@ -272,6 +272,7 @@ export default class MoreDirectChannels extends React.PureComponent<Props, State
                 handleDelete={this.handleDelete}
                 handlePageChange={this.handlePageChange}
                 handleSubmit={this.handleSubmit}
+                handleHide={this.handleHide}
                 isExistingChannel={this.props.isExistingChannel}
                 loading={this.state.loadingUsers}
                 saving={this.state.saving}
@@ -290,7 +291,7 @@ export default class MoreDirectChannels extends React.PureComponent<Props, State
                 onHide={this.handleHide}
                 onExited={this.handleExit}
                 onEntered={this.loadModalData}
-                role='dialog'
+                role='none'
                 aria-labelledby='moreDmModalLabel'
                 id='moreDmModal'
             >

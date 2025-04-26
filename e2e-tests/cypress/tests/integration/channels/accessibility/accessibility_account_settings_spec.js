@@ -60,10 +60,6 @@ describe('Verify Accessibility Support in different sections in Settings and Pro
             {key: 'advancedCtrlSend', label: `Send Messages on ${isMac() ? '⌘+ENTER' : 'CTRL+ENTER'}`, type: 'radio'},
             {key: 'formatting', label: 'Enable Post Formatting', type: 'radio'},
             {key: 'joinLeave', label: 'Enable Join/Leave Messages', type: 'radio'},
-
-            // As only setting in advancedPreviewFeatures was related to editor preview this isn't required at the moment,
-            // may later on we can add it if we add more settings inside it
-            // {key: 'advancedPreviewFeatures', label: 'Preview Pre-release Features', type: 'checkbox'},
         ],
     };
     let url;
@@ -216,7 +212,7 @@ describe('Verify Accessibility Support in different sections in Settings and Pro
         // * Verify image alt in profile image
         cy.get('.profile-img').should('have.attr', 'alt', 'profile image');
 
-        cy.get('#generalSettings').then((el) => {
+        cy.get('#profileSettings').then((el) => {
             if (el.find('.profile-img__remove').length > 0) {
                 cy.findByTestId('removeSettingPicture').click();
                 cy.uiSave();

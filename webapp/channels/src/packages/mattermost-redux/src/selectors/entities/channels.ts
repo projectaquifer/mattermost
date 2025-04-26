@@ -27,10 +27,10 @@ import {createSelector} from 'mattermost-redux/selectors/create_selector';
 import {getDataRetentionCustomPolicy} from 'mattermost-redux/selectors/entities/admin';
 import {getCategoryInTeamByType} from 'mattermost-redux/selectors/entities/channel_categories';
 import {
-    getCurrentChannelId,
+    getCurrentChannelId as getCurrentChannelIdInternal,
     getCurrentUser,
-    getMyChannelMemberships,
-    getMyCurrentChannelMembership,
+    getMyChannelMemberships as getMyChannelMembershipsInternal,
+    getMyCurrentChannelMembership as getMyCurrentChannelMembershipInternal,
     getUsers,
 } from 'mattermost-redux/selectors/entities/common';
 import {
@@ -69,7 +69,11 @@ import {createIdsSelector} from 'mattermost-redux/utils/helpers';
 import {isPostPriorityEnabled} from './posts';
 import {getThreadCounts, getThreadCountsIncludingDirect} from './threads';
 
-export {getCurrentChannelId, getMyChannelMemberships, getMyCurrentChannelMembership};
+// Re-define these types to ensure that these are typed correctly when mattermost-redux is published
+export const getCurrentChannelId: (state: GlobalState) => string = getCurrentChannelIdInternal;
+export const getMyChannelMemberships: (state: GlobalState) => RelationOneToOne<Channel, ChannelMembership> = getMyChannelMembershipsInternal;
+export const getMyCurrentChannelMembership: (state: GlobalState) => ChannelMembership | undefined = getMyCurrentChannelMembershipInternal;
+
 export function getAllChannels(state: GlobalState): IDMappedObjects<Channel> {
     return state.entities.channels.channels;
 }
@@ -147,18 +151,21 @@ export function getChannelMember(state: GlobalState, channelId: string, userId: 
     return getChannelMembersInChannels(state)[channelId]?.[userId];
 }
 
+type OldMakeChannelArgument = {id: string};
+
 // makeGetChannel returns a selector that returns a channel from the store with the following filled in for DM/GM channels:
 // - The display_name set to the other user(s) names, following the Teammate Name Display setting
 // - The teammate_id for DM channels
 // - The status of the other user in a DM channel
-export function makeGetChannel(): (state: GlobalState, props: {id: string}) => Channel | undefined {
+export function makeGetChannel(): (state: GlobalState, id: string) => Channel | undefined {
     return createSelector(
         'makeGetChannel',
         getCurrentUserId,
         (state: GlobalState) => state.entities.users.profiles,
         (state: GlobalState) => state.entities.users.profilesInChannel,
-        (state: GlobalState, props: {id: string}) => {
-            const channel = getChannel(state, props.id);
+        (state: GlobalState, channelId: string | OldMakeChannelArgument) => {
+            const id = typeof channelId === 'string' ? channelId : channelId.id;
+            const channel = getChannel(state, id);
             if (!channel || !isDirectChannel(channel)) {
                 return '';
             }
@@ -169,7 +176,10 @@ export function makeGetChannel(): (state: GlobalState, props: {id: string}) => C
 
             return teammateStatus || 'offline';
         },
-        (state: GlobalState, props: {id: string}) => getChannel(state, props.id),
+        (state: GlobalState, channelId: string | OldMakeChannelArgument) => {
+            const id = typeof channelId === 'string' ? channelId : channelId.id;
+            return getChannel(state, id);
+        },
         getTeammateNameDisplaySetting,
         (currentUserId, profiles, profilesInChannel, teammateStatus, channel, teammateNameDisplay) => {
             if (channel) {
@@ -185,6 +195,16 @@ export function makeGetChannel(): (state: GlobalState, props: {id: string}) => C
 // display_name for DM/GM channels.
 export function getChannel(state: GlobalState, id: string): Channel | undefined {
     return getAllChannels(state)[id];
+}
+
+// getDirectChannel returns a direct channel channel as it exists in the store filling in any additional details such as the
+// display_name or teammate_id.
+export function getDirectChannel(state: GlobalState, id: string): Channel | undefined {
+    const channel = getAllChannels(state)[id];
+    if (channel && channel.type === 'D') {
+        return completeDirectChannelInfo(state.entities.users, getTeammateNameDisplaySetting(state), channel);
+    }
+    return undefined;
 }
 
 export function getMyChannelMembership(state: GlobalState, channelId: string): ChannelMembership | undefined {
@@ -222,6 +242,26 @@ export const getCurrentChannel: (state: GlobalState) => Channel | undefined = cr
     },
 );
 
+const getChannelNameForSearch = (channel: Channel | undefined, users: UsersState): string | undefined => {
+    if (!channel) {
+        return undefined;
+    }
+
+    // Only get the extra info from users if we need it
+    if (channel.type === General.DM_CHANNEL) {
+        const dmChannelWithInfo = completeDirectChannelInfo(users, Preferences.DISPLAY_PREFER_USERNAME, channel);
+        return `@${dmChannelWithInfo.display_name}`;
+    }
+
+    // Replace spaces in GM channel names
+    if (channel.type === General.GM_CHANNEL) {
+        const gmChannelWithInfo = completeDirectGroupInfo(users, Preferences.DISPLAY_PREFER_USERNAME, channel, false);
+        return `@${gmChannelWithInfo.display_name.replace(/\s/g, '')}`;
+    }
+
+    return channel.name;
+};
+
 export const getCurrentChannelNameForSearchShortcut: (state: GlobalState) => string | undefined = createSelector(
     'getCurrentChannelNameForSearchShortcut',
     getAllChannels,
@@ -229,29 +269,27 @@ export const getCurrentChannelNameForSearchShortcut: (state: GlobalState) => str
     (state: GlobalState): UsersState => state.entities.users,
     (allChannels: IDMappedObjects<Channel>, currentChannelId: string, users: UsersState): string | undefined => {
         const channel = allChannels[currentChannelId];
-
-        // Only get the extra info from users if we need it
-        if (channel?.type === General.DM_CHANNEL) {
-            const dmChannelWithInfo = completeDirectChannelInfo(users, Preferences.DISPLAY_PREFER_USERNAME, channel);
-            return `@${dmChannelWithInfo.display_name}`;
-        }
-
-        // Replace spaces in GM channel names
-        if (channel?.type === General.GM_CHANNEL) {
-            const gmChannelWithInfo = completeDirectGroupInfo(users, Preferences.DISPLAY_PREFER_USERNAME, channel, false);
-            return `@${gmChannelWithInfo.display_name.replace(/\s/g, '')}`;
-        }
-
-        return channel?.name;
+        return getChannelNameForSearch(channel, users);
     },
 );
 
-export const getMyChannelMember: (state: GlobalState, channelId: string) => ChannelMembership | undefined | null = createSelector(
+export const getChannelNameForSearchShortcut: (state: GlobalState, channelId: string) => string | undefined = createSelector(
+    'getChannelNameForSearchShortcut',
+    getAllChannels,
+    (state: GlobalState): UsersState => state.entities.users,
+    (state: GlobalState, channelId: string): string => channelId,
+    (allChannels: IDMappedObjects<Channel>, users: UsersState, channelId: string): string | undefined => {
+        const channel = allChannels[channelId];
+        return getChannelNameForSearch(channel, users);
+    },
+);
+
+export const getMyChannelMember: (state: GlobalState, channelId: string) => ChannelMembership | undefined = createSelector(
     'getMyChannelMember',
     getMyChannelMemberships,
     (state: GlobalState, channelId: string): string => channelId,
-    (channelMemberships: RelationOneToOne<Channel, ChannelMembership>, channelId: string): ChannelMembership | undefined | null => {
-        return channelMemberships[channelId] || null;
+    (channelMemberships: RelationOneToOne<Channel, ChannelMembership>, channelId: string): ChannelMembership | undefined => {
+        return channelMemberships[channelId];
     },
 );
 
@@ -529,7 +567,7 @@ export const getMyChannels: (state: GlobalState) => Channel[] = createSelector(
     getAllDirectChannels,
     getMyChannelMemberships,
     (channels: Channel[], directChannels: Channel[], myMembers: RelationOneToOne<Channel, ChannelMembership>): Channel[] => {
-        return [...channels, ...directChannels].filter((c) => myMembers.hasOwnProperty(c.id));
+        return [...channels, ...directChannels].filter((c) => Object.hasOwn(myMembers, c.id));
     },
 );
 
@@ -539,7 +577,7 @@ export const getOtherChannels: (state: GlobalState, archived?: boolean | null) =
     getMyChannelMemberships,
     (state: GlobalState, archived: boolean | undefined | null = true) => archived,
     (channels: Channel[], myMembers: RelationOneToOne<Channel, ChannelMembership>, archived?: boolean | null): Channel[] => {
-        return channels.filter((c) => !myMembers.hasOwnProperty(c.id) && c.type === General.OPEN_CHANNEL && (archived ? true : c.delete_at === 0));
+        return channels.filter((c) => !Object.hasOwn(myMembers, c.id) && c.type === General.OPEN_CHANNEL && (archived ? true : c.delete_at === 0));
     },
 );
 
@@ -1259,7 +1297,10 @@ export function getChannelModerations(state: GlobalState, channelId: string): Ch
 }
 
 const EMPTY_OBJECT = {};
-export function getChannelMemberCountsByGroup(state: GlobalState, channelId: string): ChannelMemberCountsByGroup {
+export function getChannelMemberCountsByGroup(state: GlobalState, channelId?: string): ChannelMemberCountsByGroup {
+    if (!channelId) {
+        return EMPTY_OBJECT;
+    }
     return state.entities.channels.channelMemberCountsByGroup[channelId] || EMPTY_OBJECT;
 }
 
@@ -1322,7 +1363,7 @@ export function searchChannelsInPolicy(state: GlobalState, policyId: string, ter
 
 export function getDirectTeammate(state: GlobalState, channelId: string): UserProfile | undefined {
     const channel = getChannel(state, channelId);
-    if (!channel) {
+    if (!channel || channel.type !== 'D') {
         return undefined;
     }
 
@@ -1425,3 +1466,8 @@ export const getRecentProfilesFromDMs: (state: GlobalState) => UserProfile[] = c
         return [...sortedUserProfiles];
     },
 );
+
+export const isDeactivatedDirectChannel = (state: GlobalState, channelId: string) => {
+    const teammate = getDirectTeammate(state, channelId);
+    return Boolean(teammate && teammate.delete_at);
+};

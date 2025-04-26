@@ -78,7 +78,8 @@ func SetMainHelper(mh *testlib.MainHelper) {
 }
 
 func setupTestHelper(dbStore store.Store, searchEngine *searchengine.Broker, enterprise bool, includeCache bool,
-	updateConfig func(*model.Config), options []app.Option) *TestHelper {
+	updateConfig func(*model.Config), options []app.Option,
+) *TestHelper {
 	tempWorkspace, err := os.MkdirTemp("", "apptest")
 	if err != nil {
 		panic(err)
@@ -95,13 +96,25 @@ func setupTestHelper(dbStore store.Store, searchEngine *searchengine.Broker, ent
 	memoryConfig.SetDefaults()
 	*memoryConfig.PluginSettings.Directory = filepath.Join(tempWorkspace, "plugins")
 	*memoryConfig.PluginSettings.ClientDirectory = filepath.Join(tempWorkspace, "webapp")
-	memoryConfig.ServiceSettings.EnableLocalMode = model.NewBool(true)
+	memoryConfig.ServiceSettings.EnableLocalMode = model.NewPointer(true)
 	*memoryConfig.ServiceSettings.LocalModeSocketLocation = filepath.Join(tempWorkspace, "mattermost_local.sock")
 	*memoryConfig.LogSettings.EnableSentry = false // disable error reporting during tests
 	*memoryConfig.LogSettings.ConsoleLevel = mlog.LvlStdLog.Name
 	*memoryConfig.AnnouncementSettings.AdminNoticesEnabled = false
 	*memoryConfig.AnnouncementSettings.UserNoticesEnabled = false
 	*memoryConfig.PluginSettings.AutomaticPrepackagedPlugins = false
+	// Enabling Redis with Postgres.
+	if *memoryConfig.SqlSettings.DriverName == model.DatabaseDriverPostgres {
+		*memoryConfig.CacheSettings.CacheType = model.CacheTypeRedis
+		redisHost := "localhost"
+		if os.Getenv("IS_CI") == "true" {
+			redisHost = "redis"
+		}
+		*memoryConfig.CacheSettings.RedisAddress = redisHost + ":6379"
+		*memoryConfig.CacheSettings.DisableClientCache = true
+		*memoryConfig.CacheSettings.RedisDB = 0
+		options = append(options, app.ForceEnableRedis())
+	}
 	if updateConfig != nil {
 		updateConfig(memoryConfig)
 	}
@@ -212,7 +225,7 @@ func setupTestHelper(dbStore store.Store, searchEngine *searchengine.Broker, ent
 }
 
 func getLicense(enterprise bool, cfg *model.Config) *model.License {
-	if *cfg.ExperimentalSettings.EnableRemoteClusterService || *cfg.ExperimentalSettings.EnableSharedChannels {
+	if *cfg.ConnectedWorkspacesSettings.EnableRemoteClusterService || *cfg.ConnectedWorkspacesSettings.EnableSharedChannels {
 		return model.NewTestLicenseSKU(model.LicenseShortSkuProfessional)
 	}
 	if enterprise {
@@ -409,14 +422,16 @@ func closeBody(r *http.Response) {
 	}
 }
 
-var initBasicOnce sync.Once
-var userCache struct {
-	SystemAdminUser   *model.User
-	SystemManagerUser *model.User
-	TeamAdminUser     *model.User
-	BasicUser         *model.User
-	BasicUser2        *model.User
-}
+var (
+	initBasicOnce sync.Once
+	userCache     struct {
+		SystemAdminUser   *model.User
+		SystemManagerUser *model.User
+		TeamAdminUser     *model.User
+		BasicUser         *model.User
+		BasicUser2        *model.User
+	}
+)
 
 func (th *TestHelper) InitLogin() *TestHelper {
 	th.waitForConnectivity()
@@ -543,16 +558,39 @@ func (th *TestHelper) CreateLocalClient(socketPath string) *model.Client4 {
 	}
 }
 
+func (th *TestHelper) createConnectedWebSocketClient(t *testing.T, client *model.Client4) *model.WebSocketClient {
+	t.Helper()
+	wsClient, err := th.CreateWebSocketClientWithClient(client)
+	require.NoError(t, err)
+	require.NotNil(t, wsClient, "webSocketClient should not be nil")
+	wsClient.Listen()
+	t.Cleanup(wsClient.Close)
+
+	// Ensure WS is connected. First event should be hello message.
+	select {
+	case ev := <-wsClient.EventChannel:
+		require.Equal(t, model.WebsocketEventHello, ev.EventType())
+	case <-time.After(5 * time.Second):
+		require.FailNow(t, "hello event was not received within the timeout period")
+	}
+
+	return wsClient
+}
+
+func (th *TestHelper) CreateConnectedWebSocketClient(t *testing.T) *model.WebSocketClient {
+	return th.createConnectedWebSocketClient(t, th.Client)
+}
+
+func (th *TestHelper) CreateConnectedWebSocketClientWithClient(t *testing.T, client *model.Client4) *model.WebSocketClient {
+	return th.createConnectedWebSocketClient(t, client)
+}
+
 func (th *TestHelper) CreateWebSocketClient() (*model.WebSocketClient, error) {
 	return model.NewWebSocketClient4(fmt.Sprintf("ws://localhost:%v", th.App.Srv().ListenAddr.Port), th.Client.AuthToken)
 }
 
 func (th *TestHelper) CreateReliableWebSocketClient(connID string, seqNo int) (*model.WebSocketClient, error) {
 	return model.NewReliableWebSocketClientWithDialer(websocket.DefaultDialer, fmt.Sprintf("ws://localhost:%v", th.App.Srv().ListenAddr.Port), th.Client.AuthToken, connID, seqNo, true)
-}
-
-func (th *TestHelper) CreateWebSocketSystemAdminClient() (*model.WebSocketClient, error) {
-	return model.NewWebSocketClient4(fmt.Sprintf("ws://localhost:%v", th.App.Srv().ListenAddr.Port), th.SystemAdminClient.AuthToken)
 }
 
 func (th *TestHelper) CreateWebSocketClientWithClient(client *model.Client4) (*model.WebSocketClient, error) {
@@ -579,6 +617,17 @@ func (th *TestHelper) CreateBotWithClient(client *model.Client4) *model.Bot {
 
 func (th *TestHelper) CreateUser() *model.User {
 	return th.CreateUserWithClient(th.Client)
+}
+
+func (th *TestHelper) CreateGuestUser(tb testing.TB) *model.User {
+	tb.Helper()
+
+	guestUser := th.CreateUserWithClient(th.Client)
+
+	_, appErr := th.App.UpdateUserRoles(th.Context, guestUser.Id, model.SystemGuestRoleId, false)
+	require.Nil(tb, appErr)
+
+	return guestUser
 }
 
 func (th *TestHelper) CreateTeam() *model.Team {
@@ -846,7 +895,6 @@ func (th *TestHelper) CreateMessagePostNoClient(channel *model.Channel, message 
 		Message:   message,
 		CreateAt:  createAtTime,
 	})
-
 	if err != nil {
 		panic(err)
 	}
@@ -866,7 +914,7 @@ func (th *TestHelper) CreateDmChannel(user *model.User) *model.Channel {
 func (th *TestHelper) PatchChannelModerationsForMembers(channelId, name string, val bool) {
 	patch := []*model.ChannelModerationPatch{{
 		Name:  &name,
-		Roles: &model.ChannelModeratedRolesPatch{Members: model.NewBool(val)},
+		Roles: &model.ChannelModeratedRolesPatch{Members: model.NewPointer(val)},
 	}}
 
 	channel, err := th.App.GetChannel(th.Context, channelId)
@@ -981,10 +1029,10 @@ func (th *TestHelper) GenerateTestEmail() string {
 func (th *TestHelper) CreateGroup() *model.Group {
 	id := model.NewId()
 	group := &model.Group{
-		Name:        model.NewString("n-" + id),
+		Name:        model.NewPointer("n-" + id),
 		DisplayName: "dn_" + id,
 		Source:      model.GroupSourceLdap,
-		RemoteId:    model.NewString("ri_" + model.NewId()),
+		RemoteId:    model.NewPointer("ri_" + model.NewId()),
 	}
 
 	group, err := th.App.CreateGroup(group)
@@ -1086,6 +1134,11 @@ func CheckCreatedStatus(tb testing.TB, resp *model.Response) {
 	checkHTTPStatus(tb, resp, http.StatusCreated)
 }
 
+func CheckNoContentStatus(tb testing.TB, resp *model.Response) {
+	tb.Helper()
+	checkHTTPStatus(tb, resp, http.StatusNoContent)
+}
+
 func CheckForbiddenStatus(tb testing.TB, resp *model.Response) {
 	tb.Helper()
 	checkHTTPStatus(tb, resp, http.StatusForbidden)
@@ -1104,6 +1157,11 @@ func CheckNotFoundStatus(tb testing.TB, resp *model.Response) {
 func CheckBadRequestStatus(tb testing.TB, resp *model.Response) {
 	tb.Helper()
 	checkHTTPStatus(tb, resp, http.StatusBadRequest)
+}
+
+func CheckUnprocessableEntityStatus(tb testing.TB, resp *model.Response) {
+	tb.Helper()
+	checkHTTPStatus(tb, resp, http.StatusUnprocessableEntity)
 }
 
 func CheckNotImplementedStatus(tb testing.TB, resp *model.Response) {

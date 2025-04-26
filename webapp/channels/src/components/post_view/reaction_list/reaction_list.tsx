@@ -169,12 +169,10 @@ export default class ReactionList extends React.PureComponent<Props, State> {
                         permissions={[Permissions.ADD_REACTION]}
                     >
                         <WithTooltip
-                            id='addReactionTooltip'
                             title={messages.addAReaction}
-                            placement='top'
                         >
                             <button
-                                aria-label={localizeMessage('reaction.add.ariaLabel', 'Add a reaction')}
+                                aria-label={localizeMessage({id: 'reaction.add.ariaLabel', defaultMessage: 'Add a reaction'})}
                                 className='Reaction'
                                 onClick={this.toggleEmojiPicker}
                             >
@@ -199,7 +197,7 @@ export default class ReactionList extends React.PureComponent<Props, State> {
 
         return (
             <div
-                aria-label={localizeMessage('reaction.container.ariaLabel', 'reactions')}
+                aria-label={localizeMessage({id: 'reaction.container.ariaLabel', defaultMessage: 'reactions'})}
                 className='post-reaction-list'
             >
                 {reactions}

@@ -296,7 +296,7 @@ export default class SuggestionBox extends React.PureComponent {
         this.setState({focused: false});
 
         if (this.props.onBlur) {
-            this.props.onBlur();
+            this.props.onBlur(e);
         }
     };
 
@@ -820,6 +820,12 @@ export default class SuggestionBox extends React.PureComponent {
                     ref={this.inputRef}
                     autoComplete='off'
                     {...props}
+                    aria-controls='suggestionList'
+                    role='combobox'
+                    {...(this.state.selection && {'aria-activedescendant': `${props.id}_${this.state.selection}`}
+                    )}
+                    aria-autocomplete='list'
+                    aria-expanded={this.state.focused || this.props.forceSuggestionsWhenBlur}
                     onInput={this.handleChange}
                     onCompositionStart={this.handleCompositionStart}
                     onCompositionUpdate={this.handleCompositionUpdate}

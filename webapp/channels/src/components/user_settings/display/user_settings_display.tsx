@@ -9,7 +9,7 @@ import type {MessageDescriptor} from 'react-intl';
 import {FormattedMessage, defineMessage} from 'react-intl';
 import type {Timezone} from 'timezones.json';
 
-import type {PreferenceType} from '@mattermost/types/preferences';
+import type {PreferencesType, PreferenceType} from '@mattermost/types/preferences';
 import type {UserProfile, UserTimezone} from '@mattermost/types/users';
 
 import type {ActionResult} from 'mattermost-redux/types/actions';
@@ -20,8 +20,8 @@ import SettingItem from 'components/setting_item';
 import SettingItemMax from 'components/setting_item_max';
 import ThemeSetting from 'components/user_settings/display/user_settings_theme';
 
-import type {Language} from 'i18n/i18n';
 import {getLanguageInfo} from 'i18n/i18n';
+import type {Language} from 'i18n/i18n';
 import Constants from 'utils/constants';
 import {getBrowserTimezone} from 'utils/timezone';
 import {a11yFocus} from 'utils/utils';
@@ -81,14 +81,19 @@ type SectionProps ={
     onSubmit?: () => void;
 }
 
-type Props = {
+export type OwnProps = {
+    user: UserProfile;
+    adminMode?: boolean;
+    userPreferences?: PreferencesType;
+}
+
+type Props = OwnProps & {
     user: UserProfile;
     updateSection: (section: string) => void;
     activeSection?: string;
     closeModal: () => void;
     collapseModal: () => void;
     setRequireConfirm?: () => void;
-    setEnforceFocus?: () => void;
     timezones: Timezone[];
     userTimezone: UserTimezone;
     allowCustomThemes: boolean;
@@ -97,7 +102,6 @@ type Props = {
     userLocale: string;
     enableThemeSelection: boolean;
     configTeammateNameDisplay: string;
-    currentUserTimezone: string;
     shouldAutoUpdateTimezone: boolean | string;
     lockTeammateNameDisplay: boolean;
     militaryTime: string;
@@ -120,6 +124,7 @@ type Props = {
         savePreferences: (userId: string, preferences: PreferenceType[]) => void;
         autoUpdateTimezone: (deviceTimezone: string) => void;
         updateMe: (user: UserProfile) => Promise<ActionResult>;
+        patchUser: (user: UserProfile) => Promise<ActionResult>;
     };
 }
 
@@ -208,7 +213,8 @@ export default class UserSettingsDisplay extends React.PureComponent<Props, Stat
             },
         };
 
-        actions.updateMe(updatedUser).
+        const action = this.props.adminMode ? actions.patchUser : actions.updateMe;
+        action(updatedUser).
             then((res) => {
                 if ('data' in res) {
                     this.props.updateSection('');
@@ -873,6 +879,7 @@ export default class UserSettingsDisplay extends React.PureComponent<Props, Stat
                         automaticTimezone={userTimezone.automaticTimezone}
                         manualTimezone={userTimezone.manualTimezone}
                         updateSection={this.updateSection}
+                        adminMode={this.props.adminMode}
                     />
                 );
             }
@@ -960,7 +967,7 @@ export default class UserSettingsDisplay extends React.PureComponent<Props, Stat
                 defaultDisplay: Preferences.COLLAPSED_REPLY_THREADS_FALLBACK_DEFAULT,
                 title: defineMessage({
                     id: 'user.settings.display.collapsedReplyThreadsTitle',
-                    defaultMessage: 'Collapsed Reply Threads',
+                    defaultMessage: 'Threaded Discussions',
                 }),
                 firstOption: {
                     value: Preferences.COLLAPSED_REPLY_THREADS_ON,
@@ -1076,6 +1083,7 @@ export default class UserSettingsDisplay extends React.PureComponent<Props, Stat
                             user={this.props.user}
                             locale={userLocale}
                             updateSection={this.updateSection}
+                            adminMode={this.props.adminMode}
                         />
                     )}
                 />
@@ -1088,7 +1096,7 @@ export default class UserSettingsDisplay extends React.PureComponent<Props, Stat
         }
 
         let themeSection;
-        if (this.props.enableThemeSelection) {
+        if (this.props.enableThemeSelection && !this.props.adminMode) {
             themeSection = (
                 <div>
                     <ThemeSetting
@@ -1096,7 +1104,6 @@ export default class UserSettingsDisplay extends React.PureComponent<Props, Stat
                         areAllSectionsInactive={this.props.activeSection === ''}
                         updateSection={this.updateSection}
                         setRequireConfirm={this.props.setRequireConfirm}
-                        setEnforceFocus={this.props.setEnforceFocus}
                         allowCustomThemes={this.props.allowCustomThemes}
                     />
                     <div className='divider-dark'/>
@@ -1141,7 +1148,11 @@ export default class UserSettingsDisplay extends React.PureComponent<Props, Stat
         }
 
         return (
-            <div id='displaySettings'>
+            <div
+                id='displaySettings'
+                aria-labelledby='displayButton'
+                role='tabpanel'
+            >
                 <SettingMobileHeader
                     closeModal={this.props.closeModal}
                     collapseModal={this.props.collapseModal}

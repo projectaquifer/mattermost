@@ -385,6 +385,7 @@ exports[`components/user_settings/display/CustomThemeChooser should match, init 
       >
         <label
           className="custom-label"
+          htmlFor="codeThemeSelect"
         >
           <MemoizedFormattedMessage
             defaultMessage="Code Theme"
@@ -426,27 +427,17 @@ exports[`components/user_settings/display/CustomThemeChooser should match, init 
               Monokai
             </option>
           </select>
-          <OverlayTrigger
-            defaultOverlayShown={false}
-            overlay={
-              <Memo(Popover)
+          <WithTooltip
+            title={
+              <div
                 className="code-popover"
-                id="code-popover"
-                popoverStyle="info"
               >
                 <img
                   alt="code theme image"
-                  src={null}
+                  src=""
                   width="200"
                 />
-              </Memo(Popover)>
-            }
-            placement="top"
-            trigger={
-              Array [
-                "hover",
-                "focus",
-              ]
+              </div>
             }
           >
             <span
@@ -454,10 +445,10 @@ exports[`components/user_settings/display/CustomThemeChooser should match, init 
             >
               <img
                 alt="code theme image"
-                src={null}
+                src=""
               />
             </span>
-          </OverlayTrigger>
+          </WithTooltip>
         </div>
       </div>
     </div>
@@ -546,6 +537,7 @@ exports[`components/user_settings/display/CustomThemeChooser should match, init 
     >
       <label
         className="custom-label"
+        htmlFor="pasteBox"
       >
         <MemoizedFormattedMessage
           defaultMessage="Copy to share or paste theme colors here:"
