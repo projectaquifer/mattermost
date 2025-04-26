@@ -10,7 +10,6 @@ for bluelink in $(cat ./bluelinks); do
 
     rm $bluelink
     mv blue/$bluelink/ $bluelink
-    ln -s $bluelink blue/$bluelink
 
     echo "$bluelink is now a directory"
 done

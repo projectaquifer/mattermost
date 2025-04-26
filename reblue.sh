@@ -8,7 +8,6 @@ for bluelink in $(cat ./bluelinks); do
         exit 1
     fi
 
-    rm blue/$bluelink
     mv $bluelink blue/$bluelink
     ln -s blue/$bluelink $bluelink
 
