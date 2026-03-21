@@ -9,7 +9,16 @@ for bluelink in $(cat ./bluelinks); do
     fi
 
     mv $bluelink blue/$bluelink
-    ln -s blue/$bluelink $bluelink
+
+    # compute the right relative path from the symlink's directory back to blue/
+    linkdir=$(dirname "$bluelink")
+    if [[ "$linkdir" == "." ]]; then
+        ln -s "blue/$bluelink" "$bluelink"
+    else
+        depth=$(echo "$linkdir" | tr '/' '\n' | wc -l | tr -d ' ')
+        prefix=$(printf '../%.0s' $(seq 1 $depth))
+        ln -s "${prefix}blue/$bluelink" "$bluelink"
+    fi
 
     echo "$bluelink is now a link"
 done
