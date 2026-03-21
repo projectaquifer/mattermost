@@ -1,0 +1,3 @@
+[submodule "blue"]
+	path = blue
+	url = https://github.com/projectaquifer/blue.git
