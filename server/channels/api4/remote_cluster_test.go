@@ -13,9 +13,9 @@ import (
 )
 
 func TestGetRemoteClusters(t *testing.T) {
+	mainHelper.Parallel(t)
 	t.Run("Should not work if the remote cluster service is not enabled", func(t *testing.T) {
 		th := Setup(t)
-		defer th.TearDown()
 		rcs, resp, err := th.SystemAdminClient.GetRemoteClusters(context.Background(), 0, 999999, model.RemoteClusterQueryFilter{})
 		CheckNotImplementedStatus(t, resp)
 		require.Error(t, err)
@@ -23,7 +23,6 @@ func TestGetRemoteClusters(t *testing.T) {
 	})
 
 	th := setupForSharedChannels(t)
-	defer th.TearDown()
 
 	newRCs := []*model.RemoteCluster{
 		{
@@ -182,6 +181,7 @@ func TestGetRemoteClusters(t *testing.T) {
 }
 
 func TestCreateRemoteCluster(t *testing.T) {
+	mainHelper.Parallel(t)
 	rcWithTeamAndPassword := &model.RemoteClusterWithPassword{
 		RemoteCluster: &model.RemoteCluster{
 			Name:          "remotecluster",
@@ -193,7 +193,6 @@ func TestCreateRemoteCluster(t *testing.T) {
 
 	t.Run("Should not work if the remote cluster service is not enabled", func(t *testing.T) {
 		th := Setup(t)
-		defer th.TearDown()
 
 		rcWithInvite, resp, err := th.SystemAdminClient.CreateRemoteCluster(context.Background(), rcWithTeamAndPassword)
 		CheckNotImplementedStatus(t, resp)
@@ -201,8 +200,7 @@ func TestCreateRemoteCluster(t *testing.T) {
 		require.Empty(t, rcWithInvite)
 	})
 
-	th := setupForSharedChannels(t).InitBasic()
-	defer th.TearDown()
+	th := setupForSharedChannels(t).InitBasic(t)
 
 	t.Run("Should not work if the user doesn't have the right permissions", func(t *testing.T) {
 		rcWithInvite, resp, err := th.Client.CreateRemoteCluster(context.Background(), rcWithTeamAndPassword)
@@ -294,6 +292,7 @@ func TestCreateRemoteCluster(t *testing.T) {
 }
 
 func TestRemoteClusterAcceptinvite(t *testing.T) {
+	mainHelper.Parallel(t)
 	rcAcceptInvite := &model.RemoteClusterAcceptInvite{
 		Name:          "remotecluster",
 		Invite:        "myinvitecode",
@@ -303,7 +302,6 @@ func TestRemoteClusterAcceptinvite(t *testing.T) {
 
 	t.Run("Should not work if the remote cluster service is not enabled", func(t *testing.T) {
 		th := Setup(t)
-		defer th.TearDown()
 
 		rc, resp, err := th.SystemAdminClient.RemoteClusterAcceptInvite(context.Background(), rcAcceptInvite)
 		CheckNotImplementedStatus(t, resp)
@@ -311,8 +309,7 @@ func TestRemoteClusterAcceptinvite(t *testing.T) {
 		require.Empty(t, rc)
 	})
 
-	th := setupForSharedChannels(t).InitBasic()
-	defer th.TearDown()
+	th := setupForSharedChannels(t).InitBasic(t)
 
 	rcAcceptInvite.DefaultTeamId = th.BasicTeam.Id
 
@@ -392,6 +389,7 @@ func TestRemoteClusterAcceptinvite(t *testing.T) {
 }
 
 func TestGenerateRemoteClusterInvite(t *testing.T) {
+	mainHelper.Parallel(t)
 	password := "mysupersecret"
 
 	newRC := &model.RemoteCluster{
@@ -402,7 +400,6 @@ func TestGenerateRemoteClusterInvite(t *testing.T) {
 
 	t.Run("Should not work if the remote cluster service is not enabled", func(t *testing.T) {
 		th := Setup(t)
-		defer th.TearDown()
 
 		newRC.CreatorId = th.SystemAdminUser.Id
 
@@ -416,8 +413,7 @@ func TestGenerateRemoteClusterInvite(t *testing.T) {
 		require.Zero(t, inviteCode)
 	})
 
-	th := setupForSharedChannels(t).InitBasic()
-	defer th.TearDown()
+	th := setupForSharedChannels(t).InitBasic(t)
 
 	newRC.CreatorId = th.SystemAdminUser.Id
 
@@ -482,6 +478,7 @@ func TestGenerateRemoteClusterInvite(t *testing.T) {
 }
 
 func TestGetRemoteCluster(t *testing.T) {
+	mainHelper.Parallel(t)
 	newRC := &model.RemoteCluster{
 		Name:    "remotecluster",
 		SiteURL: "http://example.com",
@@ -490,7 +487,6 @@ func TestGetRemoteCluster(t *testing.T) {
 
 	t.Run("Should not work if the remote cluster service is not enabled", func(t *testing.T) {
 		th := Setup(t)
-		defer th.TearDown()
 
 		newRC.CreatorId = th.SystemAdminUser.Id
 
@@ -505,8 +501,7 @@ func TestGetRemoteCluster(t *testing.T) {
 		require.Empty(t, fetchedRC)
 	})
 
-	th := setupForSharedChannels(t).InitBasic()
-	defer th.TearDown()
+	th := setupForSharedChannels(t).InitBasic(t)
 
 	newRC.CreatorId = th.SystemAdminUser.Id
 	newRC.DefaultTeamId = th.BasicTeam.Id
@@ -540,6 +535,7 @@ func TestGetRemoteCluster(t *testing.T) {
 }
 
 func TestPatchRemoteCluster(t *testing.T) {
+	mainHelper.Parallel(t)
 	newRC := &model.RemoteCluster{
 		Name:        "remotecluster",
 		DisplayName: "initialvalue",
@@ -551,7 +547,6 @@ func TestPatchRemoteCluster(t *testing.T) {
 
 	t.Run("Should not work if the remote cluster service is not enabled", func(t *testing.T) {
 		th := Setup(t)
-		defer th.TearDown()
 
 		newRC.CreatorId = th.SystemAdminUser.Id
 
@@ -565,8 +560,7 @@ func TestPatchRemoteCluster(t *testing.T) {
 		require.Empty(t, patchedRC)
 	})
 
-	th := setupForSharedChannels(t).InitBasic()
-	defer th.TearDown()
+	th := setupForSharedChannels(t).InitBasic(t)
 
 	newRC.CreatorId = th.SystemAdminUser.Id
 
@@ -604,6 +598,7 @@ func TestPatchRemoteCluster(t *testing.T) {
 }
 
 func TestDeleteRemoteCluster(t *testing.T) {
+	mainHelper.Parallel(t)
 	newRC := &model.RemoteCluster{
 		Name:        "remotecluster",
 		DisplayName: "initialvalue",
@@ -613,7 +608,6 @@ func TestDeleteRemoteCluster(t *testing.T) {
 
 	t.Run("Should not work if the remote cluster service is not enabled", func(t *testing.T) {
 		th := Setup(t)
-		defer th.TearDown()
 
 		newRC.CreatorId = th.SystemAdminUser.Id
 
@@ -626,8 +620,7 @@ func TestDeleteRemoteCluster(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	th := setupForSharedChannels(t).InitBasic()
-	defer th.TearDown()
+	th := setupForSharedChannels(t).InitBasic(t)
 
 	newRC.CreatorId = th.SystemAdminUser.Id
 

@@ -61,7 +61,7 @@ describe('Multi-user group header', () => {
         cy.get('#editChannelHeaderModalLabel').should('be.visible').wait(TIMEOUTS.ONE_SEC);
 
         // # Add the header in the modal
-        cy.findByPlaceholderText('Edit the Channel Header...').should('be.visible').type(`${header}{enter}`);
+        cy.findByPlaceholderText('Enter the Channel Header').should('be.visible').type(`${header}{enter}`);
 
         // # Wait for modal to disappear
         cy.waitUntil(() => cy.get('#editChannelHeaderModalLabel').should('not.be.visible'));
@@ -136,8 +136,10 @@ describe('Multi-user group header', () => {
     });
 
     function editHeader(header) {
-        // # Click edit conversation header
-        cy.uiOpenChannelMenu('Edit Conversation Header');
+        // # Click edit header
+        cy.uiOpenChannelMenu('');
+        cy.findByRole('menuitem', {name: 'Settings'}).trigger('mouseover');
+        cy.findByText('Edit Header').click();
 
         // * Verify the modal open to add header
         cy.get('#editChannelHeaderModalLabel').should('be.visible').wait(TIMEOUTS.ONE_SEC);

@@ -19,6 +19,7 @@ type Draft struct {
 
 	Message string `json:"message"`
 
+	Type     string          `json:"type"`
 	propsMu  sync.RWMutex    `db:"-"`       // Unexported mutex used to guard Draft.Props.
 	Props    StringInterface `json:"props"` // Deprecated: use GetProps()
 	FileIds  StringArray     `json:"file_ids,omitempty"`
@@ -97,7 +98,7 @@ func (o *Draft) PreSave() {
 
 func (o *Draft) PreCommit() {
 	if o.GetProps() == nil {
-		o.SetProps(make(map[string]interface{}))
+		o.SetProps(make(map[string]any))
 	}
 
 	if o.FileIds == nil {

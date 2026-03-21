@@ -44,8 +44,8 @@ func (ts *TeamService) GetTeams(teamIDs []string) ([]*model.Team, error) {
 // CreateDefaultChannels creates channels in the given team for each channel returned by (*App).DefaultChannelNames.
 func (ts *TeamService) createDefaultChannels(rctx request.CTX, teamID string) ([]*model.Channel, error) {
 	displayNames := map[string]string{
-		"general":   i18n.T("api.channel.create_default_channels.town_square"),
-		"off-topic": i18n.T("api.channel.create_default_channels.off_topic"),
+		"general": i18n.T("api.channel.create_default_channels.town_square"),
+		"off-topic":   i18n.T("api.channel.create_default_channels.off_topic"),
 	}
 	channels := []*model.Channel{}
 	defaultChannelNames := ts.DefaultChannelNames()
@@ -227,8 +227,8 @@ func (ts *TeamService) RemoveTeamMember(rctx request.CTX, teamMember *model.Team
 }
 
 // GetMember return the team member from the team.
-func (ts *TeamService) GetMember(c request.CTX, teamID string, userID string) (*model.TeamMember, error) {
-	member, err := ts.store.GetMember(c, teamID, userID)
+func (ts *TeamService) GetMember(rctx request.CTX, teamID string, userID string) (*model.TeamMember, error) {
+	member, err := ts.store.GetMember(rctx, teamID, userID)
 	if err != nil {
 		return nil, err
 	}

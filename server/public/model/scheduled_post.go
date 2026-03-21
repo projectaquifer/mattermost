@@ -11,6 +11,7 @@ import (
 const (
 	ScheduledPostErrorUnknownError            = "unknown"
 	ScheduledPostErrorCodeChannelArchived     = "channel_archived"
+	ScheduledPostErrorCodeRestrictedDM        = "restricted_dm"
 	ScheduledPostErrorCodeChannelNotFound     = "channel_not_found"
 	ScheduledPostErrorCodeUserDoesNotExist    = "user_missing"
 	ScheduledPostErrorCodeUserDeleted         = "user_deleted"
@@ -92,6 +93,7 @@ func (s *ScheduledPost) ToPost() (*Post, error) {
 		FileIds:   s.FileIds,
 		RootId:    s.RootId,
 		Metadata:  s.Metadata,
+		Type:      s.Type,
 	}
 
 	for key, value := range s.GetProps() {
@@ -128,13 +130,13 @@ func (s *ScheduledPost) ToPost() (*Post, error) {
 	return post, nil
 }
 
-func (s *ScheduledPost) Auditable() map[string]interface{} {
+func (s *ScheduledPost) Auditable() map[string]any {
 	var metaData map[string]any
 	if s.Metadata != nil {
 		metaData = s.Metadata.Auditable()
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"id":         s.Id,
 		"create_at":  s.CreateAt,
 		"update_at":  s.UpdateAt,
@@ -153,6 +155,7 @@ func (s *ScheduledPost) RestoreNonUpdatableFields(originalScheduledPost *Schedul
 	s.UserId = originalScheduledPost.UserId
 	s.ChannelId = originalScheduledPost.ChannelId
 	s.RootId = originalScheduledPost.RootId
+	s.Type = originalScheduledPost.Type
 }
 
 func (s *ScheduledPost) SanitizeInput() {

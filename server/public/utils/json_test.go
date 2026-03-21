@@ -52,7 +52,7 @@ func TestHumanizeJsonError(t *testing.T) {
 			[]byte("line 1\nline 2\nline 3"),
 			&json.UnmarshalTypeError{
 				Value:  "bool",
-				Type:   reflect.TypeOf(testType{}),
+				Type:   reflect.TypeFor[testType](),
 				Offset: 17,
 				Struct: "struct",
 				Field:  "field",
@@ -296,7 +296,7 @@ func TestIsJSONEmpty(t *testing.T) {
 			if !testCase.Empty {
 				// don't really need to test the JSON unmarshaller but this is included
 				// to ensure the test cases stay valid.
-				var v interface{}
+				var v any
 				err := json.Unmarshal(testCase.Data, &v)
 				assert.NoError(t, err)
 			}
