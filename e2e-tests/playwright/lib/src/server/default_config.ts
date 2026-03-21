@@ -475,7 +475,6 @@ const defaultServerConfig: AdminConfig = {
         EnableSync: false,
         LdapServer: '',
         LdapPort: 389,
-        MaximumLoginAttempts: 10,
         ConnectionSecurity: '',
         BaseDN: '',
         BindUsername: '',

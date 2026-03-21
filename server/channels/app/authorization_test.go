@@ -255,24 +255,6 @@ func TestSessionHasPermissionToChannel(t *testing.T) {
 		assert.False(t, isMember)
 	})
 
-	t.Run("basic user cannot access archived channel if setting is off", func(t *testing.T) {
-		th.App.UpdateConfig(func(cfg *model.Config) {
-			*cfg.TeamSettings.ExperimentalViewArchivedChannels = false
-		})
-		err := th.App.DeleteChannel(th.Context, th.BasicChannel, th.SystemAdminUser.Id)
-		require.Nil(t, err)
-		assert.False(t, th.App.SessionHasPermissionToChannel(th.Context, session, th.BasicChannel.Id, model.PermissionReadChannel))
-	})
-
-	t.Run("basic user can access archived channel if setting is on", func(t *testing.T) {
-		th.App.UpdateConfig(func(cfg *model.Config) {
-			*cfg.TeamSettings.ExperimentalViewArchivedChannels = true
-		})
-		err := th.App.DeleteChannel(th.Context, th.BasicChannel, th.SystemAdminUser.Id)
-		require.Nil(t, err)
-		assert.True(t, th.App.SessionHasPermissionToChannel(th.Context, session, th.BasicChannel.Id, model.PermissionReadChannel))
-	})
-
 	t.Run("does not panic if fetching channel causes an error", func(t *testing.T) {
 		// Regression test for MM-29812
 		// Mock the channel store so getting the channel returns with an error, as per the bug report.

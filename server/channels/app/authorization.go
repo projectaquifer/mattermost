@@ -486,7 +486,3 @@ func (a *App) HasPermissionToChannelMemberCount(rctx request.CTX, userID string,
 
 	return false
 }
-
-func (a *App) isChannelArchivedAndHidden(channel *model.Channel) bool {
-	return !*a.Config().TeamSettings.ExperimentalViewArchivedChannels && channel.DeleteAt != 0
-}

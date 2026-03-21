@@ -802,10 +802,6 @@ func closeAndRemoveConn(connIndex *hubConnectionIndex, conn *WebConn) {
 	connIndex.Remove(conn)
 }
 
-type connMetadata struct {
-	channelIDs []string
-}
-
 // hubConnectionIndex provides fast addition, removal, and iteration of web connections.
 // It requires 4 functionalities which need to be very fast:
 // - check if a connection exists or not.

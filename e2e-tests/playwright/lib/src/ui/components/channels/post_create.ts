@@ -2,7 +2,6 @@
 // See LICENSE.txt for license information.
 
 import path from 'node:path';
-import {waitUntil} from '@e2e-support/test_action';
 
 import {Locator, expect} from '@playwright/test';
 

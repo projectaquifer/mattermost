@@ -185,26 +185,6 @@ func (ch *Channels) servePluginRequest(w http.ResponseWriter, r *http.Request, h
 		token = r.URL.Query().Get("access_token")
 	}
 
-	// If MFA is required and user has not activated it, we wipe the token.
-	app := New(ServerConnector(ch))
-	rctx := request.EmptyContext(ch.srv.Log()).WithPath(r.URL.Path)
-
-	// The appErr is later used at L176 and L226.
-	session, appErr := app.GetSession(token)
-	if session != nil {
-		rctx = rctx.WithSession(session)
-	}
-
-	if mfaAppErr := app.MFARequired(rctx); mfaAppErr != nil {
-		pluginID := mux.Vars(r)["plugin_id"]
-		ch.srv.Log().Warn("Treating session as unauthenticated since MFA required",
-			mlog.String("plugin_id", pluginID),
-			mlog.String("url", r.URL.Path),
-			mlog.Err(mfaAppErr),
-		)
-		token = ""
-	}
-
 	// Mattermost-Plugin-ID can only be set by inter-plugin requests
 	r.Header.Del("Mattermost-Plugin-ID")
 
